@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ocean Volcano Snake</title>
+<style>
+  /* Reset and base */
+  :root{
+    --ocean-deep:#023e73;
+    --ocean-mid:#0b6ba8;
+    --ocean-light:#79c0e4;
+    --sunset-1:#ffd1c2;
+    --sunset-2:#ffb3a7;
+    --lava:#ff6b3d;
+    --ember:#ffb86b;
+    --accent:#ffd7a6;
+    --glass: rgba(255,255,255,0.06);
+    --glass-2: rgba(255,255,255,0.10);
+    --text: #f6f7fb;
+  }
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg, var(--ocean-deep) 0%, var(--ocean-mid) 50%, var(--ocean-light) 100%);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* App layout */
+  .wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+    box-sizing:border-box;
+  }
+
+  .card{
+    width:100%;
+    max-width:980px;
+    display:grid;
+    grid-template-columns: 1fr 340px;
+    gap:20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border-radius:18px;
+    padding:18px;
+    box-shadow: 0 10px 30px rgba(2,10,20,0.45);
+    border: 1px solid rgba(255,255,255,0.04);
+    backdrop-filter: blur(6px) saturate(1.05);
+  }
+
+  /* Canvas area */
+  .stage {
+    position:relative;
+    border-radius:12px;
+    overflow:hidden;
+    padding:12px;
+    background:
+      radial-gradient(1200px 260px at 10% 10%, rgba(255,182,139,0.05), transparent 10%),
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: inset 0 2px 12px rgba(0,0,0,0.25);
+  }
+
+  canvas {
+    display:block;
+    width:100%;
+    height:calc(100vh - 220px);
+    max-height:720px;
+    border-radius:8px;
+    background:
+      linear-gradient(180deg, rgba(255,200,130,0.02) 0%, rgba(255,120,70,0.01) 30%),
+      radial-gradient(800px 300px at 70% 10%, rgba(255,150,90,0.02), transparent 10%);
+  }
+
+  /* Right panel */
+  .controls {
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    align-items:stretch;
+  }
+
+  h1{
+    margin:0 0 6px 0;
+    font-size:20px;
+    letter-spacing:0.2px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .subtitle{
+    margin:0;
+    font-size:13px;
+    color:rgba(255,255,255,0.85);
+  }
+
+  .stat-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px;
+    border-radius:10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.02);
+  }
+  .stat{
+    display:flex;
+    flex-direction:column;
+  }
+  .stat .label{ font-size:12px; color:rgba(255,255,255,0.8); }
+  .stat .value{ font-size:20px; font-weight:600; margin-top:4px; }
+
+  /* Controls */
+  .btn{
+    appearance:none;
+    border:0;
+    padding:10px 14px;
+    border-radius:10px;
+    font-weight:600;
+    cursor:pointer;
+    color:var(--ocean-deep);
+    background: linear-gradient(180deg, var(--accent), #ffe2b3);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  }
+  .btn.secondary{
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    color:var(--text);
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow:none;
+  }
+
+  .slider-row{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:8px;
+    background:linear-gradient(90deg,var(--ocean-mid),var(--sunset-2));
+    border-radius:8px;
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--sunset-1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    border:3px solid rgba(255,255,255,0.6);
+  }
+  .controls small{ color:rgba(255,255,255,0.75); }
+
+  /* Legend / instructions */
+  .legend{
+    font-size:13px;
+    color:rgba(255,255,255,0.9);
+    line-height:1.45;
+    padding:10px;
+    border-radius:8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.02);
+  }
+
+  /* footer & credits */
+  .footer{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:auto;
+    font-size:12px;
+    color:rgba(255,255,255,0.75);
+  }
+
+  /* Responsive */
+  @media (max-width:880px){
+    .card{ grid-template-columns: 1fr; }
+    canvas{ height:420px; }
+  }
+
+  /* small decorative waves in the card background */
+  .waves {
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    height:96px;
+    pointer-events:none;
+    background:
+      radial-gradient(30px 6px at 10% 50%, rgba(255,255,255,0.02), transparent 30%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01) 20px, transparent 20px, transparent 40px);
+    opacity:0.9;
+    mix-blend-mode:overlay;
+  }
+
+  /* subtle floating embers */
+  .ember {
+    position:absolute;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 35%, #fff, var(--ember));
+    filter: blur(1px);
+    opacity:0.8;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+    animation: ember-float 6s linear infinite;
+  }
+  @keyframes ember-float {
+    0%{ transform:translate(-50%,-50%) translateY(0) scale(1); opacity:0.8; }
+    50%{ transform:translate(-50%,-50%) translateY(-26px) scale(1.2); opacity:0.4; }
+    100%{ transform:translate(-50%,-50%) translateY(0) scale(1); opacity:0.8; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" role="application" aria-label="Ocean Volcano Snake Game">
+    <section class="stage" aria-hidden="false">
+      <canvas id="gameCanvas" aria-label="Game board"></canvas>
+      <div class="waves" aria-hidden="true"></div>
+      <!-- A few decorative ember elements -->
+      <div id="emberContainer" aria-hidden="true"></div>
+    </section>
+
+    <aside class="controls" aria-label="Game controls">
+      <div>
+        <h1>🌊🔥 Ocean Volcano Snake</h1>
+        <p class="subtitle">A smooth, tropical sunset take on the classic Snake. Avoid lava, eat embers, score big!</p>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="label">Score</div>
+          <div id="score" class="value">0</div>
+        </div>
+        <div class="stat">
+          <div class="label">High Score</div>
+          <div id="highScore" class="value">0</div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button id="startBtn" class="btn">Start</button>
+        <button id="pauseBtn" class="btn secondary">Pause</button>
+        <button id="resetBtn" class="btn secondary">Restart</button>
+      </div>
+
+      <div class="slider-row">
+        <label for="speedRange"><small>Speed: <span id="speedLabel">Medium</span></small></label>
+        <input id="speedRange" type="range" min="6" max="18" value="10" step="1" />
+        <small>Use arrow keys or swipe to control the snake. Faster = more challenge.</small>
+      </div>
+
+      <div class="legend" role="note">
+        <strong>Theme & mechanics</strong><br>
+        • Eat glowing embers to grow and score.<br>
+        • The volcano (bottom-right) produces embers — don't run into your tail or the lava zone.<br>
+        • Score increases with each ember; speed affects how often the snake moves.<br>
+        • Game saves your best score locally.
+      </div>
+
+      <div class="footer">
+        <div>Controls: ← ↑ → ↓  •  Swipe (mobile)</div>
+        <div style="opacity:0.9">Made with ☀️ & 🌊</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* Ocean Volcano Snake
+   Single-file game:
+   - Canvas-based grid snake
+   - Smooth rendering + devicePixelRatio scaling
+   - Speed adjustable via slider (cells per second)
+   - Score + persistent high score (localStorage)
+   - Keyboard + touch swipe controls
+   - Nice themed visuals drawn directly on canvas
+*/
+
+/* Config */
+const config = {
+  cols: 22,
+  rows: 22,
+  initialSnakeLength: 4,
+  baseSpeed: 10, // default cells per second (adjustable)
+  minSpeed: 6,
+  maxSpeed: 18,
+  cellPadding: 2,
+  backgroundGradient: ['#023e73','#0b6ba8','#79c0e4'],
+};
+
+/* State */
+let canvas, ctx;
+let width, height, scale;
+let cellSize;
+let snake = [];
+let dir = {x:1,y:0}; // moving right initially
+let pendingDir = null;
+let ember = null;
+let emberTimer = 0;
+let score = 0;
+let highScore = 0;
+let running = false;
+let lastTime = 0;
+let accumulator = 0;
+let speed = config.baseSpeed; // cells per second
+let stepInterval = 1 / speed;
+let gameOver = false;
+
+/* Touch/swipe support */
+let touchStart = null;
+
+/* Utils */
+function rndInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+/* High score */
+function loadHighScore(){
+  try {
+    const raw = localStorage.getItem('ov_snake_high');
+    if(raw) highScore = parseInt(raw,10)||0;
+  } catch(e){}
+  document.getElementById('highScore').textContent = highScore;
+}
+function saveHighScore(){
+  try{
+    localStorage.setItem('ov_snake_high', String(highScore));
+  }catch(e){}
+}
+
+/* Setup canvas & responsive scaling */
+function setupCanvas(){
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d', { alpha: true });
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    width = Math.floor(rect.width);
+    height = Math.floor(Math.max(280, rect.height));
+    // handle high DPI
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // compute cell size to fit grid
+    cellSize = Math.floor(Math.min(width / config.cols, height / config.rows));
+  }
+  window.addEventListener('resize', resize);
+  resize();
+}
+
+/* Initialize game state */
+function resetGame(){
+  snake = [];
+  const startX = Math.floor(config.cols/4);
+  const startY = Math.floor(config.rows/2);
+  for(let i=0;i<config.initialSnakeLength;i++){
+    snake.push({x:startX - i, y:startY});
+  }
+  dir = {x:1,y:0};
+  pendingDir = null;
+  score = 0;
+  ember = null;
+  emberTimer = 0;
+  gameOver = false;
+  stepInterval = 1 / speed;
+  document.getElementById('score').textContent = score;
+  updateScoreUI();
+}
+
+/* Spawn ember near volcano area (bottom-right) but not on the snake */
+function spawnEmber(){
+  // define volcano area as bottom-right quarter-ish
+  const minX = Math.floor(config.cols * 0.55);
+  const minY = Math.floor(config.rows * 0.55);
+  let attempts = 0;
+  while(attempts < 200){
+    const x = rndInt(minX, config.cols-1);
+    const y = rndInt(minY, config.rows-1);
+    if(!snake.some(s=>s.x===x && s.y===y)){
+      ember = {x,y};
+      emberTimer = 0;
+      return;
+    }
+    attempts++;
+  }
+  // fallback: anywhere
+  while(true){
+    const x = rndInt(1, config.cols-2);
+    const y = rndInt(1, config.rows-2);
+    if(!snake.some(s=>s.x===x && s.y===y)){
+      ember = {x,y};
+      emberTimer = 0;
+      return;
+    }
+  }
+}
+
+/* Game step: move snake */
+function step(){
+  if(gameOver) return;
+  // apply pending direction change if valid
+  if(pendingDir){
+    // prevent 180-degree reversal
+    if(!(pendingDir.x === -dir.x && pendingDir.y === -dir.y)){
+      dir = pendingDir;
+    }
+    pendingDir = null;
+  }
+
+  const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+  // wrap around horizontally, but make edges slightly dangerous near volcano? For now wrap
+  if(head.x < 0) head.x = config.cols-1;
+  if(head.x >= config.cols) head.x = 0;
+  if(head.y < 0) head.y = config.rows-1;
+  if(head.y >= config.rows) head.y = 0;
+
+  // collision with self?
+  if(snake.some(s => s.x === head.x && s.y === head.y)){
+    // Game over
+    endGame();
+    return;
+  }
+
+  // move
+  snake.unshift(head);
+
+  // eat ember?
+  if(ember && head.x === ember.x && head.y === ember.y){
+    score += 10;
+    // grow: do nothing (we already added head and not removed tail)
+    ember = null;
+    // increase ember spawn timer speed slightly (more challenge)
+    emberTimer = 0;
+    // spawn a new ember shortly
+    setTimeout(spawnEmber, 280 + Math.random()*700);
+  } else {
+    // normal move: remove tail
+    snake.pop();
+  }
+
+  // occasionally spawn ember if none exists
+  emberTimer += 1;
+  if(!ember && emberTimer > 6 + Math.floor(4 + Math.random()*6)){
+    spawnEmber();
+  }
+
+  document.getElementById('score').textContent = score;
+  updateScoreUI();
+}
+
+/* End game */
+function endGame(){
+  gameOver = true;
+  running = false;
+  document.getElementById('startBtn').textContent = 'Start';
+  if(score > highScore){
+    highScore = score;
+    saveHighScore();
+    document.getElementById('highScore').textContent = highScore;
+  }
+  // small flash effect: draw game over overlay
+  draw();
+  // draw overlay
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0,0,canvas.width/ (window.devicePixelRatio||1), canvas.height/(window.devicePixelRatio||1));
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 32px Inter, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Game Over', canvas.width/2 / (window.devicePixelRatio||1), canvas.height/2 / (window.devicePixelRatio||1) - 10);
+  ctx.font = '16px Inter, Arial';
+  ctx.fillText('Press Restart or Start to play again', canvas.width/2 / (window.devicePixelRatio||1), canvas.height/2 / (window.devicePixelRatio||1) + 20);
+  ctx.restore();
+}
+
+/* Update score UI label intelligently */
+function updateScoreUI(){
+  // animate color change (subtle) if beating high score
+  const hsEl = document.getElementById('highScore');
+  if(score > highScore){
+    hsEl.style.transform = 'scale(1.06)';
+    setTimeout(()=> hsEl.style.transform = '', 220);
+  }
+}
+
+/* Game render */
+function drawGrid(){
+  // full background scenic composition: ocean gradient & sun + volcano silhouette
+  // fill ocean background
+  const w = canvas.width / (window.devicePixelRatio||1);
+  const h = canvas.height / (window.devicePixelRatio||1);
+
+  // gradient sky+ocean
+  const sky = ctx.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0, '#FFDBCF'); // warm horizon
+  sky.addColorStop(0.18, '#FFB3A7');
+  sky.addColorStop(0.35, '#ffd2b3');
+  sky.addColorStop(0.55, '#8ed0ee');
+  sky.addColorStop(1, '#0b6ba8');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,w,h);
+
+  // sun glow
+  const sunX = w * 0.18;
+  const sunY = h * 0.18;
+  const sunR = Math.min(w,h) * 0.18;
+  const sunGrad = ctx.createRadialGradient(sunX,sunY,sunR*0.05,sunX,sunY,sunR);
+  sunGrad.addColorStop(0, 'rgba(255,220,170,0.95)');
+  sunGrad.addColorStop(0.3, 'rgba(255,160,130,0.45)');
+  sunGrad.addColorStop(1, 'rgba(255,120,80,0.02)');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(sunX,sunY,sunR,0,Math.PI*2);
+  ctx.fill();
+
+  // distant islands/waves subtle shapes
+  ctx.fillStyle = 'rgba(3,35,55,0.08)';
+  ctx.beginPath();
+  ctx.ellipse(w*0.7, h*0.7, w*0.3, h*0.08, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // volcano silhouette bottom-right
+  const vx = w * 0.78;
+  const vy = h * 0.78;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(vx - 120, vy + 30);
+  ctx.lineTo(vx - 16, vy - 190);
+  ctx.lineTo(vx + 90, vy + 30);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(18,12,9,0.95)';
+  ctx.fill();
+
+  // lava stream
+  const lavaPath = new Path2D();
+  lavaPath.moveTo(vx - 24, vy - 20);
+  lavaPath.bezierCurveTo(vx - 18, vy + 20, vx + 8, vy + 40, vx + 22, vy + 90);
+  lavaPath.lineTo(vx + 8, vy + 90);
+  lavaPath.bezierCurveTo(vx, vy+40, vx-16, vy+10, vx-24, vy-20);
+  ctx.fillStyle = 'rgba(255,80,40,0.95)';
+  ctx.fill(lavaPath);
+  // volcano rim glow
+  ctx.strokeStyle = 'rgba(255,140,80,0.18)';
+  ctx.lineWidth = 8;
+  ctx.stroke();
+
+  // ember cloud smudge
+  const emberGrad = ctx.createRadialGradient(vx - 30, vy - 120, 0, vx - 30, vy - 120, 140);
+  emberGrad.addColorStop(0, 'rgba(255,150,90,0.45)');
+  emberGrad.addColorStop(1, 'rgba(255,150,90,0.02)');
+  ctx.fillStyle = emberGrad;
+  ctx.beginPath();
+  ctx.ellipse(vx - 30, vy - 120, 120, 60, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/* Draw the game grid, snake, ember */
+function draw(){
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+
+  // draw grid cells in subtle overlay (light lines)
+  const boardW = cellSize * config.cols;
+  const boardH = cellSize * config.rows;
+  const offsetX = Math.floor((canvas.width / (window.devicePixelRatio||1) - boardW) / 2);
+  const offsetY = Math.floor((canvas.height / (window.devicePixelRatio||1) - boardH) / 2);
+
+  // draw board background card
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  roundRect(ctx, offsetX-6, offsetY-6, boardW+12, boardH+12, 10);
+  ctx.fill();
+
+  // board gradient (deep ocean)
+  const boardGrad = ctx.createLinearGradient(offsetX, offsetY, offsetX, offsetY + boardH);
+  boardGrad.addColorStop(0, 'rgba(3,35,55,0.04)');
+  boardGrad.addColorStop(1, 'rgba(3,35,55,0.02)');
+  ctx.fillStyle = boardGrad;
+  roundRect(ctx, offsetX, offsetY, boardW, boardH, 8);
+  ctx.fill();
+
+  // subtle grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+  ctx.lineWidth = 1;
+  for(let x=0;x<=config.cols;x++){
+    const px = offsetX + x*cellSize + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(px, offsetY + 0.5);
+    ctx.lineTo(px, offsetY + boardH + 0.5);
+    ctx.stroke();
+  }
+  for(let y=0;y<=config.rows;y++){
+    const py = offsetY + y*cellSize + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(offsetX + 0.5, py);
+    ctx.lineTo(offsetX + boardW + 0.5, py);
+    ctx.stroke();
+  }
+
+  // draw ember (food)
+  if(ember){
+    drawCell(ember.x, ember.y, offsetX, offsetY, (cx,cy,wc)=> {
+      // ember glow
+      const g = ctx.createRadialGradient(cx + wc/2, cy + wc/2, 1, cx + wc/2, cy + wc/2, wc*0.9);
+      g.addColorStop(0, '#fff7e6');
+      g.addColorStop(0.2, '#ffd98c');
+      g.addColorStop(0.6, '#ffb86b');
+      g.addColorStop(1, 'rgba(255,120,60,0.06)');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx, cy, wc, wc);
+
+      // ember core
+      ctx.fillStyle = 'rgba(255,120,60,1)';
+      roundRect(ctx, cx + wc*0.18, cy + wc*0.2, wc*0.64, wc*0.6, 6);
+      ctx.fill();
+    });
+  }
+
+  // draw snake with gradient body
+  for(let i=snake.length-1;i>=0;i--){
+    const piece = snake[i];
+    const t = i / Math.max(1, snake.length - 1);
+    const hue = lerpColor('#ffd7a6', '#022f54', 1 - t);
+    drawCell(piece.x, piece.y, offsetX, offsetY, (cx,cy,wc)=>{
+      // segments get slightly rounded and shaded
+      roundRect(ctx, cx + config.cellPadding, cy + config.cellPadding, wc - config.cellPadding*2, wc - config.cellPadding*2, 6);
+      // fill with gradient depending on segment
+      const g = ctx.createLinearGradient(cx, cy, cx+wc, cy+wc);
+      g.addColorStop(0, shade(hue, -12));
+      g.addColorStop(1, hue);
+      ctx.fillStyle = g;
+      ctx.fill();
+      // highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      roundRect(ctx, cx + config.cellPadding, cy + config.cellPadding, wc - config.cellPadding*2, wc - config.cellPadding*2, 6);
+      ctx.fill();
+    });
+  }
+
+  // head shine / eyes
+  if(snake.length > 0){
+    const head = snake[0];
+    drawCell(head.x, head.y, offsetX, offsetY, (cx,cy,wc)=>{
+      // eye: small white dot
+      const ex = cx + wc*0.6;
+      const ey = cy + wc*0.35;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(ex, ey, Math.max(1, wc*0.06), 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(ex, ey, Math.max(0.5, wc*0.02), 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+
+  // subtle volcano overlay (lava area hint)
+  // mark lower-right region as "lava danger zone"
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#ff6b3d';
+  const lavaX = offsetX + Math.floor(config.cols * 0.55)*cellSize;
+  const lavaY = offsetY + Math.floor(config.rows * 0.55)*cellSize;
+  ctx.fillRect(lavaX, lavaY, boardW - (lavaX - offsetX), boardH - (lavaY - offsetY));
+  ctx.restore();
+
+  // optional HUD or additional effects could be drawn here
+  ctx.restore();
+}
+
+/* helpers for drawing on grid cells */
+function drawCell(gridX, gridY, offX, offY, fn){
+  const cx = offX + gridX*cellSize;
+  const cy = offY + gridY*cellSize;
+  const wc = cellSize;
+  fn(cx,cy,wc);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  if(r===undefined) r=6;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* Color helpers */
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex = hex.split('').map(h=>h+h).join('');
+  const num = parseInt(hex,16);
+  return {r:(num>>16)&255,g:(num>>8)&255,b:num&255};
+}
+function rgbToHex(r,g,b){
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function lerp(a,b,t){ return a + (b-a)*t; }
+function lerpColor(a,b,t){
+  const A = hexToRgb(a), B = hexToRgb(b);
+  const r = Math.round(lerp(A.r,B.r,t));
+  const g = Math.round(lerp(A.g,B.g,t));
+  const bl = Math.round(lerp(A.b,B.b,t));
+  return rgbToHex(r,g,bl);
+}
+function shade(hex, percent){
+  const c = hexToRgb(hex);
+  const t = percent < 0 ? 1+percent/100 : 1-percent/100;
+  const r = Math.round(c.r * t);
+  const g = Math.round(c.g * t);
+  const b = Math.round(c.b * t);
+  return rgbToHex(clamp(r,0,255),clamp(g,0,255),clamp(b,0,255));
+}
+
+/* Game loop using requestAnimationFrame with accumulator for steady steps */
+function loop(ts){
+  if(!lastTime) lastTime = ts;
+  const delta = (ts - lastTime) / 1000;
+  lastTime = ts;
+
+  if(running && !gameOver){
+    accumulator += delta;
+    const interval = 1 / speed; // seconds per step
+    while(accumulator >= interval){
+      step();
+      accumulator -= interval;
+    }
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* Controls */
+function onKey(e){
+  if(e.key === 'ArrowUp' || e.key === 'w') {
+    pendingDir = {x:0,y:-1}; e.preventDefault();
+  } else if(e.key === 'ArrowDown' || e.key === 's') {
+    pendingDir = {x:0,y:1}; e.preventDefault();
+  } else if(e.key === 'ArrowLeft' || e.key === 'a') {
+    pendingDir = {x:-1,y:0}; e.preventDefault();
+  } else if(e.key === 'ArrowRight' || e.key === 'd') {
+    pendingDir = {x:1,y:0}; e.preventDefault();
+  } else if(e.key === ' '){
+    toggleRunning();
+    e.preventDefault();
+  }
+}
+
+function toggleRunning(){
+  const btn = document.getElementById('startBtn');
+  if(gameOver){
+    resetGame();
+    running = true;
+    gameOver = false;
+    btn.textContent = 'Pause';
+  } else {
+    running = !running;
+    btn.textContent = running ? 'Pause' : 'Start';
+  }
+}
+
+function setSpeedFromSlider(val){
+  speed = clamp(parseInt(val,10), config.minSpeed, config.maxSpeed);
+  document.getElementById('speedLabel').textContent = speed <= 8 ? 'Slow' : speed <= 12 ? 'Medium' : 'Fast';
+  stepInterval = 1 / speed;
+}
+
+/* Touch handling for mobile swipe */
+function setupTouch(){
+  const el = canvas;
+  el.addEventListener('touchstart', (e)=>{
+    if(e.touches && e.touches.length === 1){
+      const t = e.touches[0];
+      touchStart = {x: t.clientX, y: t.clientY, t: Date.now()};
+    }
+  }, {passive:true});
+  el.addEventListener('touchend', (e)=>{
+    if(!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if(Math.max(adx,ady) > 20){
+      if(adx > ady){
+        pendingDir = dx > 0 ? {x:1,y:0} : {x:-1,y:0};
+      } else {
+        pendingDir = dy > 0 ? {x:0,y:1} : {x:0,y:-1};
+      }
+    } else {
+      // small tap toggles pause/start
+      toggleRunning();
+    }
+    touchStart = null;
+  }, {passive:true});
+}
+
+/* UI wiring */
+function wireUI(){
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    toggleRunning();
+  });
+  document.getElementById('pauseBtn').addEventListener('click', ()=>{
+    running = false;
+    document.getElementById('startBtn').textContent = 'Start';
+  });
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    resetGame();
+    running = false;
+    document.getElementById('startBtn').textContent = 'Start';
+    draw();
+  });
+  const speedRange = document.getElementById('speedRange');
+  speedRange.min = config.minSpeed;
+  speedRange.max = config.maxSpeed;
+  speedRange.value = speed;
+  setSpeedFromSlider(speedRange.value);
+  speedRange.addEventListener('input',(e)=>{
+    setSpeedFromSlider(e.target.value);
+  });
+
+  // keyboard
+  window.addEventListener('keydown', onKey);
+}
+
+/* decorative embers in DOM for parallax effect */
+function spawnDecorativeEmbers(){
+  const container = document.getElementById('emberContainer');
+  container.innerHTML = '';
+  const count = 6;
+  for(let i=0;i<count;i++){
+    const d = document.createElement('div');
+    d.className = 'ember';
+    d.style.left = (70 + Math.random()*22) + '%';
+    d.style.top = (42 + Math.random()*40) + '%';
+    d.style.animationDelay = (Math.random()*4) + 's';
+    d.style.opacity = (0.6 + Math.random()*0.5);
+    d.style.transform = `translate(-50%,-50%) scale(${0.7 + Math.random()*0.8})`;
+    container.appendChild(d);
+  }
+}
+
+/* Init */
+function init(){
+  setupCanvas();
+  resetGame();
+  loadHighScore();
+  wireUI();
+  setupTouch();
+  spawnDecorativeEmbers();
+  requestAnimationFrame(loop);
+}
+
+/* Helpers for color math (already above) */
+
+/* Start */
+init();
+
+/* Helper: draw a rounded rect filled/stroked using current ctx */
+function roundedRectWithStyle(x,y,w,h,r, fillStyle, strokeStyle){
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  if(fillStyle){
+    ctx.fillStyle = fillStyle;
+    ctx.fill();
+  }
+  if(strokeStyle){
+    ctx.strokeStyle = strokeStyle;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* tiny polyfills / misc */
+window.addEventListener('blur', ()=>{ running = false; document.getElementById('startBtn').textContent = 'Start'; });
+
+</script>
+</body>
+</html>
+
